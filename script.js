@@ -1,8 +1,11 @@
 // IMPORTAR FUNCIONES DE LA NUBE (FIREBASE)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, doc, setDoc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { 
+    getFirestore, doc, setDoc, getDoc, updateDoc, 
+    collection, query, where, getDocs 
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// --- PEGA AQUÍ TU CONFIGURACIÓN DE FIREBASE (Del Paso 2) ---
+// --- PEGA AQUÍ TU CONFIGURACIÓN DE FIREBASE (¡No olvides esto!) ---
 const firebaseConfig = {
     apiKey: "AIzaSyBpI16R6BI6gorLoW-I62RA09PJSUvuIY0",
   authDomain: "bancopeninsular.firebaseapp.com",
@@ -12,24 +15,47 @@ const firebaseConfig = {
   appId: "1:218848309222:web:603faf9cedb2c99caf7027"
 };
 
-// INICIALIZAR LA BASE DE DATOS
+// INICIALIZAR
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 // ESTADO GLOBAL
 let usuario = null;
 
-// CARGA INICIAL
-window.onload = function() {
+// --- 1. CARGA INICIAL Y PERSISTENCIA DE SESIÓN ---
+window.onload = async function() {
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     document.getElementById('current-date').innerText = new Date().toLocaleDateString('es-EC', options);
+    
+    // VERIFICAR SI HAY UNA SESIÓN GUARDADA
+    const usuarioGuardado = localStorage.getItem('bep_session_user');
+    if(usuarioGuardado) {
+        // Si existe, cargamos los datos de la nube automáticamente
+        await cargarDatosDeUsuario(usuarioGuardado);
+    }
 };
 
-// --- FUNCIONES QUE AHORA SON GLOBALES PARA EL HTML ---
-// (Necesario porque al usar type="module", las funciones se vuelven privadas)
+// Función auxiliar para descargar datos frescos
+async function cargarDatosDeUsuario(username) {
+    try {
+        const docRef = doc(db, "usuarios", username);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            usuario = docSnap.data();
+            document.getElementById('auth-screen').classList.add('oculto');
+            document.getElementById('dashboard').classList.remove('oculto');
+            actualizarUI();
+            mostrarToast(`Sesión restaurada: ${usuario.nombre}`, 'success');
+        }
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+// --- NAVEGACIÓN ---
 window.cerrarIntro = () => {
     document.getElementById('intro-screen').style.display = 'none';
-    document.getElementById('auth-screen').classList.remove('oculto');
+    if(!usuario) document.getElementById('auth-screen').classList.remove('oculto');
 };
 
 window.toggleAuth = (tab) => {
@@ -43,105 +69,177 @@ window.mostrarPanel = (panelId) => {
     document.querySelectorAll('.view').forEach(v => v.classList.add('oculto'));
     document.getElementById('panel-' + panelId).classList.remove('oculto');
     document.querySelectorAll('.nav-links li').forEach(l => l.classList.remove('active'));
-    // Busca el elemento que disparó el evento (si existe)
     if(event && event.currentTarget) event.currentTarget.classList.add('active');
 };
 
-// --- NUEVA LÓGICA DE REGISTRO EN LA NUBE ---
+// --- AUTHENTICACIÓN ---
+
 window.registrarUsuario = async () => {
     const nombre = document.getElementById('reg-nombre').value;
-    const user = document.getElementById('reg-user').value; // Usaremos esto como ID único
+    const user = document.getElementById('reg-user').value; 
     const pass = document.getElementById('reg-pass').value;
 
-    if(!nombre || !user || !pass) return mostrarToast('Complete todos los campos', 'error');
+    if(!nombre || !user || !pass) return mostrarToast('Complete campos', 'error');
 
-    // Verificar si ya existe
     const docRef = doc(db, "usuarios", user);
     const docSnap = await getDoc(docRef);
 
-    if (docSnap.exists()) {
-        mostrarToast('El usuario ya existe. Intente otro.', 'error');
-        return;
-    }
+    if (docSnap.exists()) return mostrarToast('Usuario ya existe', 'error');
 
-    // Crear objeto usuario
     const nuevoUsuario = {
         nombre: nombre,
         username: user,
-        password: pass, // Nota: En producción real, esto debería encriptarse
+        password: pass,
         cuenta: Math.floor(1000000000 + Math.random() * 9000000000).toString(),
         saldo: 50.00,
-        movimientos: [{ desc: 'Apertura Cuenta BEP', monto: 50, fecha: new Date().toLocaleDateString() }],
+        movimientos: [{ desc: 'Bono Bienvenida', monto: 50, fecha: new Date().toLocaleDateString() }],
         prestamos: 0,
         inversiones: []
     };
 
-    try {
-        // GUARDAR EN FIREBASE
-        await setDoc(doc(db, "usuarios", user), nuevoUsuario);
-        mostrarToast('¡Cuenta creada en la nube! Inicie sesión.', 'success');
-        window.toggleAuth('login');
-    } catch (e) {
-        console.error("Error: ", e);
-        mostrarToast('Error de conexión con base de datos', 'error');
-    }
+    await setDoc(doc(db, "usuarios", user), nuevoUsuario);
+    mostrarToast('Cuenta creada. Inicia sesión.', 'success');
+    window.toggleAuth('login');
 };
 
-// --- NUEVA LÓGICA DE LOGIN DESDE LA NUBE ---
 window.iniciarSesion = async () => {
     const user = document.getElementById('login-user').value;
     const pass = document.getElementById('login-pass').value;
 
-    if(!user || !pass) return mostrarToast('Ingrese usuario y contraseña', 'error');
+    if(!user || !pass) return mostrarToast('Faltan datos', 'error');
 
-    try {
-        // BUSCAR EN FIREBASE
-        const docRef = doc(db, "usuarios", user);
-        const docSnap = await getDoc(docRef);
+    const docRef = doc(db, "usuarios", user);
+    const docSnap = await getDoc(docRef);
 
-        if (docSnap.exists()) {
-            const data = docSnap.data();
-            if(data.password === pass) {
-                usuario = data; // Cargar datos en memoria
-                document.getElementById('auth-screen').classList.add('oculto');
-                document.getElementById('dashboard').classList.remove('oculto');
-                actualizarUI();
-                mostrarToast(`Bienvenido al BEP, ${data.nombre}`, 'success');
-            } else {
-                mostrarToast('Contraseña incorrecta', 'error');
-            }
+    if (docSnap.exists()) {
+        const data = docSnap.data();
+        if(data.password === pass) {
+            usuario = data;
+            // GUARDAR SESIÓN EN EL NAVEGADOR
+            localStorage.setItem('bep_session_user', usuario.username);
+            
+            document.getElementById('auth-screen').classList.add('oculto');
+            document.getElementById('dashboard').classList.remove('oculto');
+            actualizarUI();
+            mostrarToast(`Bienvenido ${data.nombre}`, 'success');
         } else {
-            mostrarToast('Usuario no encontrado', 'error');
+            mostrarToast('Contraseña incorrecta', 'error');
         }
-    } catch (e) {
-        mostrarToast('Error al conectar con el servidor', 'error');
+    } else {
+        mostrarToast('Usuario no encontrado', 'error');
     }
 };
 
 window.cerrarSesion = () => {
     usuario = null;
+    localStorage.removeItem('bep_session_user'); // BORRAR SESIÓN
     document.getElementById('dashboard').classList.add('oculto');
     document.getElementById('auth-screen').classList.remove('oculto');
     document.getElementById('login-user').value = '';
     document.getElementById('login-pass').value = '';
+    mostrarToast('Sesión cerrada correctamente');
 };
 
-// --- GUARDADO AUTOMÁTICO EN LA NUBE ---
-async function guardarDatosEnNube() {
+// --- OPERACIONES AVANZADAS (TRANSFERENCIA REAL) ---
+
+window.operar = async (tipo) => {
     if(!usuario) return;
-    try {
-        const userRef = doc(db, "usuarios", usuario.username);
-        await updateDoc(userRef, usuario);
-        actualizarUI();
-        console.log("Datos sincronizados con la nube");
-    } catch (e) {
-        console.error("Error guardando datos: ", e);
-        mostrarToast('Error al sincronizar transacción', 'error');
+
+    // Obtener valores
+    let montoIngreso = parseFloat(document.getElementById('op-monto-ingreso').value);
+    let montoEgreso = parseFloat(document.getElementById('op-monto-egreso').value);
+    
+    // Lógica para Depósitos y Retiros (Local -> Nube)
+    if(tipo === 'deposito' || tipo === 'cheque') {
+        if(isNaN(montoIngreso) || montoIngreso <= 0) return mostrarToast('Monto inválido', 'error');
+        
+        usuario.saldo += montoIngreso;
+        usuario.movimientos.push({ 
+            desc: tipo === 'deposito' ? 'Depósito Ventanilla' : 'Depósito Cheque', 
+            monto: montoIngreso, 
+            fecha: new Date().toLocaleDateString() 
+        });
+        await guardarDatosUsuario();
+        mostrarToast('Depósito realizado', 'success');
+        document.getElementById('op-monto-ingreso').value = '';
+
+    } else if (tipo === 'retiro') {
+        if(isNaN(montoEgreso) || montoEgreso <= 0) return mostrarToast('Monto inválido', 'error');
+        if(montoEgreso > usuario.saldo) return mostrarToast('Saldo insuficiente', 'error');
+
+        usuario.saldo -= montoEgreso;
+        usuario.movimientos.push({ desc: 'Retiro ATM', monto: -montoEgreso, fecha: new Date().toLocaleDateString() });
+        await guardarDatosUsuario();
+        mostrarToast('Retiro realizado', 'success');
+        document.getElementById('op-monto-egreso').value = '';
+
+    } else if (tipo === 'transferencia') {
+        // --- LÓGICA DE TRANSFERENCIA REAL ---
+        const cuentaDestino = document.getElementById('op-destino').value;
+        
+        if(isNaN(montoEgreso) || montoEgreso <= 0) return mostrarToast('Monto inválido', 'error');
+        if(montoEgreso > usuario.saldo) return mostrarToast('Saldo insuficiente', 'error');
+        if(!cuentaDestino) return mostrarToast('Ingrese cuenta destino', 'error');
+        if(cuentaDestino === usuario.cuenta) return mostrarToast('No puedes transferirte a ti mismo', 'error');
+
+        mostrarToast('Procesando transferencia...', 'info');
+
+        try {
+            // 1. BUSCAR AL DESTINATARIO EN LA NUBE POR SU NÚMERO DE CUENTA
+            const usuariosRef = collection(db, "usuarios");
+            const q = query(usuariosRef, where("cuenta", "==", cuentaDestino));
+            const querySnapshot = await getDocs(q);
+
+            if (querySnapshot.empty) {
+                return mostrarToast('La cuenta destino no existe', 'error');
+            }
+
+            // 2. OBTENER DATOS DEL DESTINATARIO
+            let destinatarioDoc = querySnapshot.docs[0]; // Tomamos el primer resultado
+            let destinatarioData = destinatarioDoc.data();
+            let destinatarioId = destinatarioDoc.id;
+
+            // 3. ACTUALIZAR AL REMITENTE (TÚ)
+            usuario.saldo -= montoEgreso;
+            usuario.movimientos.push({ 
+                desc: `Transf. enviada a ${cuentaDestino}`, 
+                monto: -montoEgreso, 
+                fecha: new Date().toLocaleDateString() 
+            });
+            await guardarDatosUsuario(); // Guardamos tus datos
+
+            // 4. ACTUALIZAR AL DESTINATARIO (EL OTRO)
+            destinatarioData.saldo += montoEgreso;
+            destinatarioData.movimientos.push({
+                desc: `Transf. recibida de ${usuario.nombre}`,
+                monto: montoEgreso,
+                fecha: new Date().toLocaleDateString()
+            });
+            
+            // Guardar cambios en la cuenta del destinatario
+            await updateDoc(doc(db, "usuarios", destinatarioId), destinatarioData);
+
+            mostrarToast('¡Transferencia enviada con éxito!', 'success');
+            document.getElementById('op-monto-egreso').value = '';
+            document.getElementById('op-destino').value = '';
+
+        } catch (error) {
+            console.error(error);
+            mostrarToast('Error en la transferencia', 'error');
+            // Nota: En un sistema bancario real aquí se haría un "rollback"
+        }
     }
+};
+
+// --- OTRAS FUNCIONES (INVERSIONES, PRESTAMOS, ETC) ---
+
+async function guardarDatosUsuario() {
+    const userRef = doc(db, "usuarios", usuario.username);
+    await updateDoc(userRef, usuario);
+    actualizarUI();
 }
 
-// --- LÓGICA BANCARIA (ACTUALIZADA PARA USAR ASYNC) ---
-function actualizarUI() {
+window.actualizarUI = () => {
     if(!usuario) return;
     document.getElementById('nav-user').innerText = usuario.nombre;
     document.getElementById('nav-acc').innerText = 'Cta: ' + usuario.cuenta;
@@ -157,13 +255,13 @@ function actualizarUI() {
         list.appendChild(li);
     });
 
-    // Stats Admin
+    // Admin Stats
     document.getElementById('stat-saldo').innerText = `$${usuario.saldo.toFixed(2)}`;
     document.getElementById('stat-prestamos').innerText = `$${usuario.prestamos.toFixed(2)}`;
     const totalInv = usuario.inversiones.reduce((acc, curr) => acc + curr.monto, 0);
     document.getElementById('stat-inversiones').innerText = `$${totalInv.toFixed(2)}`;
 
-    // Inversiones
+    // Inversiones List
     const invList = document.getElementById('lista-inversiones');
     if(usuario.inversiones.length > 0) {
         invList.innerHTML = '';
@@ -172,44 +270,6 @@ function actualizarUI() {
         });
         invList.classList.remove('empty-state');
     }
-}
-
-window.operar = async (tipo) => {
-    let monto = 0;
-    let desc = '';
-    let esIngreso = false;
-
-    if(tipo === 'deposito') {
-        monto = parseFloat(document.getElementById('op-monto-ingreso').value);
-        desc = 'Depósito Ventanilla'; esIngreso = true;
-    } else if (tipo === 'cheque') {
-        monto = parseFloat(document.getElementById('op-monto-ingreso').value);
-        desc = 'Depósito Cheque'; esIngreso = true;
-    } else if (tipo === 'retiro') {
-        monto = parseFloat(document.getElementById('op-monto-egreso').value);
-        desc = 'Retiro ATM'; esIngreso = false;
-    } else if (tipo === 'transferencia') {
-        monto = parseFloat(document.getElementById('op-monto-egreso').value);
-        const destino = document.getElementById('op-destino').value;
-        if(!destino || destino.length < 5) return mostrarToast('Destino inválido', 'error');
-        desc = `Transf. a ${destino}`; esIngreso = false;
-    }
-
-    if(isNaN(monto) || monto <= 0) return mostrarToast('Monto inválido', 'error');
-    if(!esIngreso && monto > usuario.saldo) return mostrarToast('Fondos insuficientes', 'error');
-
-    // Modificar estado local
-    if(esIngreso) usuario.saldo += monto;
-    else usuario.saldo -= monto;
-
-    usuario.movimientos.push({ desc: desc, monto: esIngreso ? monto : -monto, fecha: new Date().toLocaleDateString() });
-
-    // Sincronizar con DB
-    await guardarDatosEnNube();
-    
-    mostrarToast('Operación exitosa', 'success');
-    document.getElementById('op-monto-ingreso').value = '';
-    document.getElementById('op-monto-egreso').value = '';
 };
 
 window.crearPlazoFijo = async () => {
@@ -219,7 +279,7 @@ window.crearPlazoFijo = async () => {
         usuario.saldo -= monto;
         usuario.inversiones.push({ monto: monto, meses: meses });
         usuario.movimientos.push({ desc: `Plazo Fijo (${meses}M)`, monto: -monto, fecha: new Date().toLocaleDateString() });
-        await guardarDatosEnNube();
+        await guardarDatosUsuario();
         mostrarToast('Inversión creada', 'success');
     } else {
         mostrarToast('Saldo insuficiente', 'error');
@@ -232,12 +292,11 @@ window.pedirPrestamo = async () => {
         usuario.saldo += monto;
         usuario.prestamos += monto;
         usuario.movimientos.push({ desc: 'Préstamo BEP', monto: monto, fecha: new Date().toLocaleDateString() });
-        await guardarDatosEnNube();
+        await guardarDatosUsuario();
         mostrarToast('Préstamo acreditado', 'success');
     }
 };
 
-// Herramientas locales (no requieren DB)
 window.calcularArqueo = () => {
     let total = 0;
     document.querySelectorAll('.bill-input').forEach(input => {
@@ -247,8 +306,10 @@ window.calcularArqueo = () => {
 };
 
 window.copiarCuenta = () => {
-    navigator.clipboard.writeText(usuario.cuenta);
-    mostrarToast('Copiado al portapapeles');
+    if(usuario) {
+        navigator.clipboard.writeText(usuario.cuenta);
+        mostrarToast('Copiado al portapapeles');
+    }
 };
 
 function mostrarToast(mensaje, tipo = 'info') {
@@ -261,8 +322,7 @@ function mostrarToast(mensaje, tipo = 'info') {
     setTimeout(() => toast.remove(), 3000);
 }
 
-// Las funciones de importación/exportación ya no son necesarias 
-// porque la base de datos centraliza todo, pero las dejamos vacías para que no de error.
-window.generarCodigoExportacion = () => alert("Ya no es necesario. Tus datos están en la nube.");
+// Funciones obsoletas de importación (ya no se usan)
+window.generarCodigoExportacion = () => {};
 window.copiarCodigo = () => {};
-window.importarDatos = () => alert("Solo inicia sesión con tu usuario y contraseña.");
+window.importarDatos = () => {};
