@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Banco Estudiantil Peninsular | Banca Virtual</title>
+    <link rel="stylesheet" href="estilos.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div id="toast-container"></div>
+
+    <section id="intro-screen">
+        <div class="glass-card intro-content">
+            <div class="logo-container-intro">
+                <img src="logo.jpg" alt="Logo BEP" class="logo-intro">
+            </div>
+            <h1>Banco Estudiantil <span class="text-gold">Peninsular</span></h1>
+            <p>Tu futuro financiero comienza aquí</p>
+            <div class="loading-bar"><div class="progress"></div></div>
+            <button onclick="cerrarIntro()" class="btn-primary mt-4">Ingresar al Sistema</button>
+        </div>
+    </section>
+
+    <section id="auth-screen" class="oculto">
+        <div class="glass-card auth-box">
+            <div class="auth-header">
+                <img src="logo.jpg" class="logo-small mb-2">
+                <h2>Banca en Línea</h2>
+            </div>
+            <div class="tabs">
+                <button onclick="toggleAuth('login')" id="tab-login" class="active">Acceder</button>
+                <button onclick="toggleAuth('registro')" id="tab-registro">Abrir Cuenta</button>
+            </div>
+
+            <div id="form-login" class="form-group fade-in">
+                <div class="input-icon">
+                    <i class="fas fa-user"></i>
+                    <input type="text" placeholder="Usuario" id="login-user">
+                </div>
+                <div class="input-icon">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" placeholder="Contraseña" id="login-pass">
+                </div>
+                <button onclick="iniciarSesion()" class="btn-primary full-width">Iniciar Sesión</button>
+            </div>
+
+            <div id="form-registro" class="form-group oculto fade-in scrollable-form">
+                <div class="profile-upload-container">
+                    <label for="reg-foto" class="upload-btn"><i class="fas fa-camera"></i> Elegir Foto</label>
+                    <input type="file" id="reg-foto" accept="image/*" onchange="previewImage()">
+                    <img id="avatar-preview" src="" class="hidden">
+                </div>
+
+                <div class="grid-2-col-small">
+                    <input type="text" placeholder="Nombres Completos" id="reg-nombres">
+                    <input type="text" placeholder="Apellidos Completos" id="reg-apellidos">
+                </div>
+                
+                <input type="text" placeholder="Cédula de Identidad" id="reg-cedula">
+                <input type="tel" placeholder="Número Celular" id="reg-telefono">
+                
+                <div class="divider-line"></div>
+
+                <div class="input-icon">
+                    <i class="fas fa-user-plus"></i>
+                    <input type="text" placeholder="Crear Usuario" id="reg-user">
+                </div>
+                <div class="input-icon">
+                    <i class="fas fa-key"></i>
+                    <input type="password" placeholder="Crear Contraseña" id="reg-pass">
+                </div>
+
+                <div class="terms-container">
+                    <input type="checkbox" id="reg-terms">
+                    <label for="reg-terms">Acepto Términos y Condiciones</label>
+                </div>
+
+                <button onclick="registrarUsuario()" class="btn-gold full-width">Crear Cuenta BEP</button>
+            </div>
+        </div>
+    </section>
+
+    <section id="dashboard" class="oculto">
+        <nav class="sidebar">
+            <div class="brand">
+                <img src="logo.jpg" class="logo-sidebar"> 
+                <span>BEP Virtual</span>
+            </div>
+            <div class="user-profile-mini">
+                <img id="nav-avatar" src="" class="avatar-sidebar">
+                <div class="user-details">
+                    <span id="nav-user">Cargando...</span>
+                    <span id="nav-acc" class="account-badge">...</span>
+                </div>
+            </div>
+            <ul class="nav-links">
+                <li onclick="mostrarPanel('inicio')" class="active"><i class="fas fa-chart-pie"></i> Resumen</li>
+                <li onclick="mostrarPanel('operaciones')"><i class="fas fa-exchange-alt"></i> Transacciones</li>
+                <li onclick="mostrarPanel('terceros')"><i class="fas fa-users"></i> A Terceros</li>
+                <li onclick="mostrarPanel('inversiones')"><i class="fas fa-piggy-bank"></i> Inversiones/Préstamos</li>
+                <li onclick="cerrarSesion()" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Salir</li>
+            </ul>
+        </nav>
+
+        <main class="content-area">
+            <header>
+                <h2 id="header-title">Resumen Financiero</h2>
+                <div class="date-display" id="current-date">--/--/----</div>
+            </header>
+
+            <div id="panel-inicio" class="view active fade-in">
+                <div class="card-balance gradient-green">
+                    <div class="card-details">
+                        <span>Saldo Disponible</span>
+                        <h1 id="main-balance">$0.00</h1>
+                        <div class="account-number-display">
+                            Nro. Cuenta: <span id="display-acc-number">**** **** **</span>
+                            <button onclick="copiarCuenta()" class="btn-icon"><i class="far fa-copy"></i></button>
+                        </div>
+                    </div>
+                    <div class="card-logo">
+                        <i class="fab fa-cc-visa fa-3x"></i>
+                    </div>
+                </div>
+
+                <div class="recent-activity glass-panel">
+                    <h3><i class="fas fa-history"></i> Últimos Movimientos</h3>
+                    <ul id="activity-list" class="transaction-list"></ul>
+                </div>
+            </div>
+
+            <div id="panel-operaciones" class="view oculto fade-in">
+                <div class="grid-2-col">
+                    <div class="glass-panel">
+                        <h3><i class="fas fa-wallet text-green"></i> Mi Cuenta</h3>
+                        <p class="desc-text">Depósitos y Retiros Personales</p>
+                        
+                        <label>Depósito en Ventanilla</label>
+                        <div class="action-group">
+                            <input type="number" id="op-deposito-monto" placeholder="Monto">
+                            <button onclick="operar('deposito-propio')" class="btn-green full-width">Depositar</button>
+                        </div>
+
+                        <hr style="border-color: rgba(255,255,255,0.1); margin: 15px 0;">
+
+                        <label>Retiro de Efectivo</label>
+                        <div class="action-group">
+                            <input type="number" id="op-retiro-monto" placeholder="Monto">
+                            <button onclick="operar('retiro')" class="btn-red full-width">Retirar</button>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel">
+                        <h3><i class="fas fa-money-check-alt text-gold"></i> Gestión de Cheques</h3>
+                        <div class="cheque-box">
+                            <div class="cheque-header">CHEQUE BEP</div>
+                            <input type="text" id="cheque-beneficiario" placeholder="Páguese a la orden de...">
+                            <input type="number" id="cheque-monto" placeholder="$ Valor del Cheque">
+                            <button onclick="operar('cobrar-cheque')" class="btn-silver full-width mt-2">Depositar Cheque</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="panel-terceros" class="view oculto fade-in">
+                <div class="glass-panel">
+                    <h3><i class="fas fa-paper-plane text-blue"></i> Enviar Dinero a Otra Cuenta</h3>
+                    <div class="form-grid-terceros">
+                        <input type="text" id="tercero-cuenta" placeholder="Número de Cuenta Destino (10 dígitos)">
+                        <input type="number" id="tercero-monto" placeholder="Monto a enviar">
+                    </div>
+                    
+                    <div class="opciones-terceros">
+                        <div class="opcion">
+                            <h4>Transferencia Directa</h4>
+                            <p>Se descuenta de tu saldo actual.</p>
+                            <button onclick="operar('transferencia')" class="btn-blue full-width">Transferir</button>
+                        </div>
+                        <div class="opcion" style="border-left: 1px solid rgba(255,255,255,0.1); padding-left: 20px;">
+                            <h4>Depósito a Tercero</h4>
+                            <p>Simula depositar efectivo en la cuenta ajena.</p>
+                            <button onclick="operar('deposito-tercero')" class="btn-gold full-width">Depositar Efectivo</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="panel-inversiones" class="view oculto fade-in">
+                <div class="grid-2-col">
+                    <div class="glass-panel featured-panel">
+                        <h3>Plazo Fijo Estudiantil</h3>
+                        <div class="input-group">
+                            <input type="number" id="pf-monto" placeholder="Monto a Invertir">
+                            <select id="pf-tiempo">
+                                <option value="3">3 Meses (3%)</option>
+                                <option value="6">6 Meses (5%)</option>
+                                <option value="12">1 Año (8%)</option>
+                            </select>
+                        </div>
+                        <button onclick="crearPlazoFijo()" class="btn-gold full-width">Invertir</button>
+                        <div id="lista-inversiones" class="mini-list mt-2"></div>
+                    </div>
+                    <div class="glass-panel">
+                        <h3>Solicitud de Préstamo</h3>
+                        <p class="small-text">Sujeto a aprobación del Administrador.</p>
+                        <input type="number" id="prestamo-monto" placeholder="Monto Requerido">
+                        <button onclick="solicitarPrestamo()" class="btn-primary full-width mt-2">Enviar Solicitud</button>
+                        <div id="estado-prestamo" class="status-badge mt-2">Sin solicitudes.</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </section>
+
+    <section id="admin-panel" class="oculto">
+        <nav class="sidebar admin-sidebar">
+            <div class="brand">
+                <i class="fas fa-shield-alt text-gold"></i> ADMIN PANEL
+            </div>
+            <div class="user-profile-mini">
+                <div class="avatar admin-avatar"><i class="fas fa-user-tie"></i></div>
+                <div class="user-details">
+                    <span>Administrador</span>
+                    <span class="account-badge">Gerencia</span>
+                </div>
+            </div>
+            <ul class="nav-links">
+                <li onclick="mostrarPanelAdmin('usuarios')" class="active"><i class="fas fa-users"></i> Clientes</li>
+                <li onclick="mostrarPanelAdmin('prestamos')"><i class="fas fa-file-invoice-dollar"></i> Solicitudes</li>
+                <li onclick="cerrarSesion()" class="logout-btn"><i class="fas fa-power-off"></i> Salir</li>
+            </ul>
+        </nav>
+
+        <main class="content-area">
+            <header><h2>Panel de Control</h2></header>
+
+            <div id="admin-usuarios" class="view-admin active fade-in">
+                <div class="glass-panel">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <h3>Base de Datos de Clientes</h3>
+                        <button onclick="cargarUsuariosAdmin()" class="btn-blue"><i class="fas fa-sync"></i> Refrescar</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="admin-table">
+                            <thead><tr><th>Usuario</th><th>Nombre</th><th>Cédula</th><th>Cuenta</th><th>Saldo</th></tr></thead>
+                            <tbody id="tabla-usuarios-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="admin-prestamos" class="view-admin oculto fade-in">
+                <div class="glass-panel">
+                    <h3>Aprobación de Préstamos</h3>
+                    <button onclick="cargarSolicitudesAdmin()" class="btn-green mb-2"><i class="fas fa-sync"></i> Actualizar Lista</button>
+                    <div id="lista-solicitudes-prestamo" class="requests-grid">
+                        </div>
+                </div>
+            </div>
+        </main>
+    </section>
+
+    <script type="module" src="script.js"></script>
+</body>
+</html>
