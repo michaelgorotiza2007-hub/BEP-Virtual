@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Banco Estudiantil Peninsular</title>
+    <link rel="stylesheet" href="estilos.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div id="toast-container"></div>
+
+    <section id="intro-screen">
+        <div class="glass-card intro-content">
+            <div class="logo-container-intro">
+                <img src="logo.jpg" alt="Logo BEP" class="logo-intro">
+            </div>
+            <h1>Banco Estudiantil <span class="text-gold">Peninsular</span></h1>
+            <p>Tu futuro financiero comienza aquí</p>
+            <div class="loading-bar"><div class="progress"></div></div>
+            <button onclick="cerrarIntro()" class="btn-gold mt-4">Ingresar a Banca Virtual</button>
+        </div>
+    </section>
+
+    <section id="auth-screen" class="oculto">
+        <div class="glass-card auth-box">
+            
+            <div class="auth-header-modern">
+                <img src="logo.jpg" class="auth-logo">
+                <h2>Bienvenido</h2>
+                <p>Seleccione una opción para continuar</p>
+            </div>
+
+            <div class="tabs-modern">
+                <button onclick="toggleAuth('login')" id="tab-login" class="active">Iniciar Sesión</button>
+                <button onclick="toggleAuth('registro')" id="tab-registro">Registrarse</button>
+            </div>
+
+            <div id="form-login" class="form-group fade-in">
+                <div class="input-floating">
+                    <i class="fas fa-user"></i>
+                    <input type="text" id="login-user" placeholder=" ">
+                    <label>Usuario</label>
+                </div>
+                <div class="input-floating">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="login-pass" placeholder=" ">
+                    <label>Contraseña</label>
+                </div>
+                <button onclick="iniciarSesion()" class="btn-primary full-width glow-btn">INGRESAR <i class="fas fa-arrow-right"></i></button>
+            </div>
+
+            <div id="form-registro" class="form-group oculto fade-in">
+                
+                <div id="registro-paso-1" class="profile-cards-container">
+                    <div class="profile-card" onclick="seleccionarPerfil('cliente')">
+                        <div class="icon-circle blue"><i class="fas fa-user"></i></div>
+                        <h3>Cliente</h3>
+                        <p>Cuenta personal para ahorros y préstamos.</p>
+                        <button class="btn-card blue">Elegir</button>
+                    </div>
+                    <div class="profile-card" onclick="seleccionarPerfil('staff')">
+                        <div class="icon-circle gold"><i class="fas fa-id-card-alt"></i></div>
+                        <h3>Personal</h3>
+                        <p>Acceso para Administrativos y Cajeros.</p>
+                        <button class="btn-card gold">Elegir</button>
+                    </div>
+                </div>
+
+                <div id="registro-paso-2" class="oculto">
+                    <button onclick="volverSeleccion()" class="btn-text"><i class="fas fa-arrow-left"></i> Volver</button>
+                    <h3 id="titulo-registro" class="text-center mb-2">Crear Cuenta</h3>
+                    
+                    <div class="scrollable-form">
+                        <div class="profile-upload-container">
+                            <label for="reg-foto" class="upload-btn"><i class="fas fa-camera"></i> Foto</label>
+                            <input type="file" id="reg-foto" accept="image/*" onchange="previewImage()">
+                            <img id="avatar-preview" src="" class="hidden">
+                        </div>
+                        
+                        <div class="grid-2-col-small">
+                            <input type="text" placeholder="Nombres" id="reg-nombres">
+                            <input type="text" placeholder="Apellidos" id="reg-apellidos">
+                        </div>
+                        <input type="text" placeholder="Cédula" id="reg-cedula">
+                        <input type="tel" placeholder="Celular" id="reg-telefono">
+                        <hr class="divider-line">
+                        <input type="text" placeholder="Usuario" id="reg-user">
+                        <input type="password" placeholder="Contraseña" id="reg-pass">
+
+                        <div id="staff-code-area" class="hidden mt-2">
+                            <label class="small-label text-gold">Código de Acceso (Requerido)</label>
+                            <input type="password" id="reg-staff-code" placeholder="Ej: BEP2025 o CAJA2025">
+                        </div>
+
+                        <div class="terms-container mt-2">
+                            <input type="checkbox" id="reg-terms">
+                            <label for="reg-terms">Acepto términos y condiciones</label>
+                        </div>
+
+                        <button onclick="registrarUsuario()" class="btn-gold full-width mt-2">Finalizar Registro</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="dashboard" class="oculto">
+        <nav class="sidebar">
+            <div class="brand">
+                <img src="logo.jpg" class="logo-sidebar"> <span>BEP Cliente</span>
+            </div>
+            <div class="user-profile-mini">
+                <img id="nav-avatar" src="" class="avatar-sidebar">
+                <div class="user-details">
+                    <span id="nav-user">Usuario</span>
+                    <span id="nav-acc" class="account-badge">...</span>
+                </div>
+            </div>
+            <ul class="nav-links">
+                <li onclick="mostrarPanel('inicio')" class="active"><i class="fas fa-home"></i> Inicio</li>
+                <li onclick="mostrarPanel('operaciones')"><i class="fas fa-wallet"></i> Operaciones</li>
+                <li onclick="mostrarPanel('terceros')"><i class="fas fa-users"></i> A Terceros</li>
+                <li onclick="mostrarPanel('servicios')"><i class="fas fa-file-invoice-dollar"></i> Préstamos</li>
+                <li onclick="cerrarSesion()" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Salir</li>
+            </ul>
+        </nav>
+
+        <main class="content-area">
+            <header>
+                <h2 id="header-title">Mi Banca</h2>
+                <div class="date-display" id="current-date">--/--/----</div>
+            </header>
+
+            <div id="panel-inicio" class="view active fade-in">
+                <div class="card-balance gradient-blue">
+                    <div class="card-details">
+                        <span>Saldo Disponible</span>
+                        <h1 id="main-balance">$0.00</h1>
+                        <div class="account-number-display">
+                            Cta: <span id="display-acc-number">****</span>
+                            <button onclick="copiarCuenta()" class="btn-icon"><i class="far fa-copy"></i></button>
+                        </div>
+                    </div>
+                    <div class="card-logo"><i class="fab fa-cc-visa fa-3x"></i></div>
+                </div>
+                <div class="recent-activity glass-panel">
+                    <h3>Movimientos Recientes</h3>
+                    <ul id="activity-list" class="transaction-list"></ul>
+                </div>
+            </div>
+
+            <div id="panel-operaciones" class="view oculto fade-in">
+                <div class="glass-panel">
+                    <h3>Transferencias Directas</h3>
+                    <div class="form-grid-terceros">
+                        <input type="text" id="tercero-cuenta" placeholder="Cuenta Destino">
+                        <input type="number" id="tercero-monto" placeholder="Monto">
+                    </div>
+                    <button onclick="operar('transferencia')" class="btn-blue full-width">Transferir Ahora</button>
+                </div>
+                <div class="glass-panel mt-4">
+                    <h3>Depósito de Cheques</h3>
+                    <div class="cheque-design">
+                        <div class="cheque-header"><span>CHEQUE BEP</span></div>
+                        <input type="text" id="cheque-beneficiario" placeholder="Beneficiario...">
+                        <input type="number" id="cheque-monto" placeholder="$ Valor">
+                        <button onclick="operar('cobrar-cheque')" class="btn-silver mt-2">Depositar</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="panel-terceros" class="view oculto fade-in">
+                <div class="glass-panel">
+                    <h3>Servicios a Terceros</h3>
+                    <p>Utilice la pestaña "Operaciones" para transferencias.</p>
+                </div>
+            </div>
+
+            <div id="panel-servicios" class="view oculto fade-in">
+                <div class="glass-panel">
+                    <h3>Solicitud de Crédito</h3>
+                    <p class="text-gray mb-2">Estado de su crédito actual.</p>
+                    
+                    <div id="form-prestamo-container">
+                        <div class="grid-2-col">
+                            <div>
+                                <label class="small-label">Monto a Solicitar</label>
+                                <input type="number" id="prestamo-monto" placeholder="$ 0.00">
+                            </div>
+                            <div>
+                                <label class="small-label">Ingresos Mensuales</label>
+                                <input type="number" id="prestamo-ingresos" placeholder="$ 0.00">
+                            </div>
+                        </div>
+                        <label class="small-label">Motivo</label>
+                        <input type="text" id="prestamo-motivo" placeholder="Ej: Estudios...">
+                        <label class="small-label">Referencia Laboral</label>
+                        <input type="text" id="prestamo-trabajo" placeholder="Empresa...">
+                        <label class="small-label">Plazo</label>
+                        <select id="prestamo-plazo">
+                            <option value="3">3 Meses (5% Interés)</option>
+                            <option value="6">6 Meses (10% Interés)</option>
+                            <option value="12">12 Meses (15% Interés)</option>
+                        </select>
+                        <button onclick="solicitarPrestamo()" class="btn-gold full-width mt-4">Enviar Solicitud</button>
+                    </div>
+
+                    <div id="estado-prestamo" class="status-box mt-4">No tienes solicitudes activas.</div>
+
+                    <div id="amortizacion-user-container" class="hidden mt-4">
+                        <h4 class="text-gold mb-2">Tabla de Amortización</h4>
+                        <div class="table-responsive">
+                            <table class="admin-table">
+                                <thead><tr><th>Mes</th><th>Cuota</th><th>Saldo Restante</th></tr></thead>
+                                <tbody id="tabla-amortizacion-user"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </section>
+
+    <section id="admin-panel" class="oculto">
+        <nav class="sidebar admin-sidebar">
+            <div class="brand-column">
+                <img src="logo.jpg" class="logo-sidebar mb-2">
+                <span class="text-gold bold">BANCO ESTUDIANTIL</span>
+                <small>ADMINISTRACIÓN</small>
+            </div>
+            <ul class="nav-links mt-4">
+                <li onclick="mostrarPanelAdmin('usuarios')" class="active"><i class="fas fa-users"></i> Directorio</li>
+                <li onclick="mostrarPanelAdmin('prestamos')"><i class="fas fa-file-invoice-dollar"></i> Solicitudes</li>
+                <li onclick="mostrarPanelAdmin('transacciones')"><i class="fas fa-list"></i> Historial</li>
+                <li onclick="cerrarSesion()" class="logout-btn"><i class="fas fa-power-off"></i> Salir</li>
+            </ul>
+        </nav>
+        <main class="content-area">
+            <header><h2>Gestión Gerencial</h2></header>
+
+            <div id="admin-usuarios" class="view-admin active fade-in">
+                <button onclick="cargarUsuariosAdmin()" class="btn-blue mb-2 full-width"><i class="fas fa-sync"></i> Actualizar Listas</button>
+
+                <div class="glass-panel">
+                    <h3><i class="fas fa-user-friends text-gold"></i> Cartera de Clientes</h3>
+                    <div class="table-responsive">
+                        <table class="admin-table">
+                            <thead><tr><th>Foto</th><th>Cliente</th><th>Cédula</th><th>Cuenta</th><th>Saldo</th><th>Acción</th></tr></thead>
+                            <tbody id="tabla-clientes-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="glass-panel mt-4">
+                    <h3><i class="fas fa-id-card-alt text-green"></i> Nómina de Trabajadores</h3>
+                    <div class="table-responsive">
+                        <table class="admin-table">
+                            <thead><tr><th>Foto</th><th>Nombre</th><th>Cédula</th><th>Rol</th><th>Contacto</th><th>Acción</th></tr></thead>
+                            <tbody id="tabla-trabajadores-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="admin-detalle-cliente" class="view-admin oculto fade-in">
+                <button onclick="cerrarDetalleCliente()" class="btn-text mb-2"><i class="fas fa-arrow-left"></i> Volver a la lista</button>
+                
+                <div class="glass-panel">
+                    <div class="perfil-header-admin">
+                        <img id="detalle-foto" src="" class="avatar-sidebar" style="width:80px;height:80px;">
+                        <div>
+                            <h2 id="detalle-nombre" class="text-gold">Nombre Cliente</h2>
+                            <p id="detalle-cedula">C.I: ---</p>
+                            <p id="detalle-cuenta">Cuenta: ---</p>
+                        </div>
+                        <div class="saldo-box-admin">
+                            <small>Saldo Actual</small>
+                            <h2 id="detalle-saldo" class="text-green">$0.00</h2>
+                        </div>
+                    </div>
+                    
+                    <hr class="divider-line">
+                    
+                    <h3>Resumen Financiero</h3>
+                    <div id="detalle-info-prestamo">
+                        </div>
+
+                    <div id="detalle-amortizacion-container" class="hidden mt-4">
+                        <h4>Tabla de Amortización Activa</h4>
+                        <div class="table-responsive">
+                            <table class="admin-table">
+                                <thead><tr><th>Mes</th><th>Cuota</th><th>Saldo</th></tr></thead>
+                                <tbody id="tabla-amortizacion-admin"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="admin-prestamos" class="view-admin oculto fade-in">
+                <div class="glass-panel">
+                    <h3>Solicitudes de Crédito</h3>
+                    <button onclick="cargarSolicitudesAdmin()" class="btn-green mb-2">Actualizar</button>
+                    <div id="lista-solicitudes-prestamo" class="requests-grid"></div>
+                </div>
+            </div>
+
+            <div id="admin-transacciones" class="view-admin oculto fade-in">
+                <div class="glass-panel">
+                    <h3>Registro Global</h3>
+                    <button onclick="cargarTransaccionesGlobales()" class="btn-blue mb-2">Ver Historial</button>
+                    <div class="table-responsive">
+                        <table class="admin-table">
+                            <thead><tr><th>Fecha</th><th>Usuario</th><th>Detalle</th><th>Monto</th></tr></thead>
+                            <tbody id="tabla-transacciones-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </section>
+
+    <section id="cajero-panel" class="oculto">
+        <nav class="sidebar" style="border-right: 2px solid #27ae60;">
+            <div class="brand-column">
+                <i class="fas fa-cash-register fa-3x text-green mb-2"></i>
+                <span class="text-green bold">VENTANILLA</span>
+                <small>Sistema de Caja</small>
+            </div>
+            <div class="user-profile-mini mt-4">
+                <div class="user-details">
+                    <span id="cajero-name-display">Cajero</span>
+                    <span class="account-badge">Turno Activo</span>
+                </div>
+            </div>
+            <ul class="nav-links mt-4">
+                <li class="active"><i class="fas fa-coins"></i> Operaciones</li>
+                <li onclick="cerrarSesion()" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Cerrar Caja</li>
+            </ul>
+        </nav>
+
+        <main class="content-area">
+            <header><h2>Módulo de Caja</h2></header>
+
+            <div class="glass-panel">
+                <h3><i class="fas fa-search"></i> Buscar Cliente</h3>
+                <div class="grid-2-col" style="grid-template-columns: 3fr 1fr;">
+                    <input type="text" id="cajero-search-input" placeholder="Ingrese Cuenta o Cédula">
+                    <button onclick="buscarClienteCajero()" class="btn-primary">Buscar</button>
+                </div>
+            </div>
+
+            <div id="cajero-cliente-info" class="glass-panel oculto fade-in">
+                <div class="client-card-cajero">
+                    <img id="cajero-client-foto" src="" class="avatar-sidebar">
+                    <div>
+                        <h2 id="cajero-client-nombre">Cliente</h2>
+                        <p>Cuenta: <span id="cajero-client-cuenta" class="text-gold">---</span></p>
+                        <p>Saldo Actual: <span id="cajero-client-saldo" class="text-green">$0.00</span></p>
+                    </div>
+                </div>
+
+                <hr class="divider-line">
+
+                <h3>Realizar Operación</h3>
+                <div class="grid-2-col">
+                    <div>
+                        <label>Tipo de Transacción</label>
+                        <select id="cajero-tipo-op">
+                            <option value="deposito">Depósito (Ingreso)</option>
+                            <option value="retiro">Retiro (Egreso)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Monto ($)</label>
+                        <input type="number" id="cajero-monto-op" placeholder="0.00">
+                    </div>
+                </div>
+                <button onclick="ejecutarOperacionCajero()" class="btn-green full-width mt-4" style="font-size: 1.1rem;">PROCESAR TRANSACCIÓN</button>
+            </div>
+        </main>
+    </section>
+
+    <script type="module" src="script.js"></script>
+</body>
+</html>
